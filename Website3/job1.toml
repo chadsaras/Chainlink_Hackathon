@@ -1,0 +1,26 @@
+type = "directrequest"
+schemaVersion = 1
+name = "Check"
+contractAddress = "0xE16D25D0F70c868C454f91aBF8F214b0bb0A2543"
+maxTaskDuration = "0s"
+evmChainID = "11155111"
+minIncomingConfirmations = 0
+minContractPaymentLinkJuels = "0"
+observationSource = """
+    decode_log   [type=ethabidecodelog
+                  abi="OracleRequest(bytes32 indexed specId, address requester, bytes32 requestId, uint256 payment, address callbackAddr, bytes4 callbackFunctionId, uint256 cancelExpiration, uint256 dataVersion, bytes data)"
+                  data="$(jobRun.logData)"
+                  topics="$(jobRun.logTopics)"]
+
+    decode_cbor  [type=cborparse data="$(decode_log.data)"]
+    fetch        [type=bridge name="db-1" requestData="{\\"id\\": $(jobSpec.externalJobID), \\"data\\": { \\"username\\": $(decode_cbor.username), \\"type\\": $(decode_cbor.type) }}",]
+    parse        [type=jsonparse path="data,result" data="$(fetch)"]
+    encode_data  [type=ethabiencode abi="(bytes32 requestId, string result, uint256 skinId, uint256 skinId, string userName, string walletAddress, uint256 price)" data="{ \\"requestId\\": $(decode_log.requestId), \\"result\\": $(parse), \\"skinId\\": $(decode_cbor.skinId), \\"userName\\": $(decode_cbor.userName), \\"walletAddress\\": $(decode_cbor.walletAddress), \\"price\\": $(decode_cbor.price) }"]
+    encode_tx    [type=ethabiencode
+                  abi="fulfillOracleRequest(bytes32 requestId, uint256 payment, address callbackAddress, bytes4 callbackFunctionId, uint256 expiration, bytes32 data)"
+                  data="{\\"requestId\\": $(decode_log.requestId), \\"payment\\": $(decode_log.payment), \\"callbackAddress\\": $(decode_log.callbackAddr), \\"callbackFunctionId\\": $(decode_log.callbackFunctionId), \\"expiration\\": $(decode_log.cancelExpiration), \\"data\\": $(encode_data)}"
+                 ]
+    submit_tx    [type=ethtx to="0xE16D25D0F70c868C454f91aBF8F214b0bb0A2543" data="$(encode_tx)"]
+
+    decode_log -> decode_cbor -> fetch -> parse -> encode_data -> encode_tx -> submit_tx
+"""

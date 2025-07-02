@@ -1,0 +1,14 @@
+
+npm i react-router-dom
+web3
+npm install react-bootstrap bootstrap
+npm i express mongoose http cors dotenv
+npm i axios
+npm i react-bootstrap
+npm i bcrypt
+npm install dotenv
+npm i alchemy-sdk
+
+
+ for integration - 
+ npm install @maticnetwork/meta
